@@ -1,25 +1,32 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { internal } from "../convex/_generated/api";
-import { Auth } from "convex/server";
+import { type Auth } from "convex/server";
+import { internal } from "./_generated/api";
 
-export const getUserId = async (ctx: { auth: Auth }) => {
-  return (await ctx.auth.getUserIdentity())?.subject;
-};
+export async function getUserId({ auth }: { auth: Auth }) {
+  return (await auth.getUserIdentity())?.subject ?? null;
+}
+
+async function requireUserId({ auth }: { auth: Auth }) {
+  const userId = await getUserId({ auth });
+  if (userId) return userId;
+
+  throw new Error(
+    "Authenticated user was required, but no Clerk subject was found",
+  );
+}
 
 // Get all notes for a specific user
 export const getNotes = query({
   args: {},
   handler: async (ctx) => {
     const userId = await getUserId(ctx);
-    if (!userId) return null;
+    if (!userId) return [];
 
-    const notes = await ctx.db
+    return await ctx.db
       .query("notes")
-      .filter((q) => q.eq(q.field("userId"), userId))
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
       .collect();
-
-    return notes;
   },
 });
 
@@ -31,7 +38,13 @@ export const getNote = query({
   handler: async (ctx, args) => {
     const { id } = args;
     if (!id) return null;
+
+    const userId = await getUserId(ctx);
+    if (!userId) return null;
+
     const note = await ctx.db.get(id);
+    if (!note || note.userId !== userId) return null;
+
     return note;
   },
 });
@@ -44,8 +57,7 @@ export const createNote = mutation({
     isSummary: v.boolean(),
   },
   handler: async (ctx, { title, content, isSummary }) => {
-    const userId = await getUserId(ctx);
-    if (!userId) throw new Error("User not found");
+    const userId = await requireUserId(ctx);
     const noteId = await ctx.db.insert("notes", { userId, title, content });
 
     if (isSummary) {
@@ -64,7 +76,15 @@ export const deleteNote = mutation({
   args: {
     noteId: v.id("notes"),
   },
-  handler: async (ctx, args) => {
-    await ctx.db.delete(args.noteId);
+  handler: async (ctx, { noteId }) => {
+    const userId = await requireUserId(ctx);
+    const note = await ctx.db.get(noteId);
+
+    if (!note) throw new Error(`Note '${noteId}' could not be found`);
+
+    if (note.userId !== userId)
+      throw new Error(`User '${userId}' cannot delete note '${noteId}'`);
+
+    await ctx.db.delete(noteId);
   },
 });

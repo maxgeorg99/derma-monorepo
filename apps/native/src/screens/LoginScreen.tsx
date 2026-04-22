@@ -1,33 +1,29 @@
 import React from "react";
 import { StyleSheet, View, Text, TouchableOpacity, Image } from "react-native";
+import { useSSO } from "@clerk/clerk-expo";
 import { RFValue } from "react-native-responsive-fontsize";
-import { useOAuth } from "@clerk/clerk-expo";
 import { AntDesign } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 
-const LoginScreen = ({ navigation }) => {
-  const { startOAuthFlow: startGoogleAuthFlow } = useOAuth({
-    strategy: "oauth_google",
-  });
-  const { startOAuthFlow: startAppleAuthFlow } = useOAuth({
-    strategy: "oauth_apple",
-  });
+type OAuthStrategy = "oauth_google" | "oauth_apple";
 
-  const onPress = async (authType: string) => {
+const LoginScreen = () => {
+  const router = useRouter();
+  const { startSSOFlow } = useSSO();
+
+  const onPress = async ({ strategy }: { strategy: OAuthStrategy }) => {
     try {
-      if (authType === "google") {
-        const { createdSessionId, setActive } = await startGoogleAuthFlow();
-        if (createdSessionId) {
-          setActive({ session: createdSessionId });
-          navigation.navigate("NotesDashboardScreen");
-        }
-      } else if (authType === "apple") {
-        const { createdSessionId, setActive } = await startAppleAuthFlow();
-        if (createdSessionId) {
-          setActive({ session: createdSessionId });
-          navigation.navigate("NotesDashboardScreen");
-        }
-      }
+      const { createdSessionId, setActive } = await startSSOFlow({ strategy });
+      if (!createdSessionId || !setActive) return;
+
+      await setActive({ session: createdSessionId });
+      router.replace("/");
     } catch (err) {
+      const message = String(err);
+      if (message.includes("already signed in")) {
+        return;
+      }
+
       console.error("OAuth error", err);
     }
   };
@@ -43,7 +39,9 @@ const LoginScreen = ({ navigation }) => {
         <Text style={styles.subtitle}>Welcome! Please login below.</Text>
         <TouchableOpacity
           style={styles.buttonGoogle}
-          onPress={() => onPress("google")}
+          onPress={() => {
+            onPress({ strategy: "oauth_google" });
+          }}
         >
           <Image
             style={styles.googleIcon}
@@ -56,7 +54,9 @@ const LoginScreen = ({ navigation }) => {
 
         <TouchableOpacity
           style={styles.buttonApple}
-          onPress={() => onPress("apple")}
+          onPress={() => {
+            onPress({ strategy: "oauth_apple" });
+          }}
         >
           <AntDesign name="apple" size={24} color="black" />
           <Text

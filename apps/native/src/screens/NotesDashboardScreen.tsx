@@ -11,11 +11,14 @@ import {
 } from "react-native";
 import { Feather, AntDesign } from "@expo/vector-icons";
 import { RFValue } from "react-native-responsive-fontsize";
-import { useAuth, useUser } from "@clerk/clerk-expo";
+import { useUser } from "@clerk/clerk-expo";
 import { api } from "@packages/backend/convex/_generated/api";
+import { type Doc } from "@packages/backend/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
+import { type Href, useRouter } from "expo-router";
 
-const NotesDashboardScreen = ({ navigation }) => {
+const NotesDashboardScreen = () => {
+  const router = useRouter();
   const user = useUser();
   const imageUrl = user?.user?.imageUrl;
   const firstName = user?.user?.firstName;
@@ -23,21 +26,20 @@ const NotesDashboardScreen = ({ navigation }) => {
   const allNotes = useQuery(api.notes.getNotes);
   const [search, setSearch] = useState("");
 
-  const finalNotes = search
-    ? allNotes.filter(
-        (note) =>
-          note.title.toLowerCase().includes(search.toLowerCase()) ||
-          note.content.toLowerCase().includes(search.toLowerCase()),
-      )
-    : allNotes;
+  const finalNotes =
+    search && allNotes
+      ? allNotes.filter(
+          (note) =>
+            note.title.toLowerCase().includes(search.toLowerCase()) ||
+            note.content.toLowerCase().includes(search.toLowerCase()),
+        )
+      : (allNotes ?? []);
 
-  const renderItem = ({ item }) => (
+  const renderItem = ({ item }: { item: Doc<"notes"> }) => (
     <TouchableOpacity
-      onPress={() =>
-        navigation.navigate("InsideNoteScreen", {
-          item: item,
-        })
-      }
+      onPress={() => {
+        router.push(`/notes/${item._id}` as Href);
+      }}
       activeOpacity={0.5}
       style={styles.noteItem}
     >
@@ -99,7 +101,9 @@ const NotesDashboardScreen = ({ navigation }) => {
       )}
 
       <TouchableOpacity
-        onPress={() => navigation.navigate("CreateNoteScreen")}
+        onPress={() => {
+          router.push("/notes/new");
+        }}
         style={styles.newNoteButton}
       >
         <AntDesign name="plus-circle" size={20} color="#fff" />

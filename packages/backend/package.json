@@ -10,10 +10,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "convex": "^1.29.3",
-    "openai": "^6.9.1"
+    "convex": "^1.35.1",
+    "openai": "^6.34.0"
   },
   "devDependencies": {
-    "typescript": "5.9.3"
+    "typescript": "6.0.3"
   }
 }

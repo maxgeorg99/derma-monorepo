@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   StyleSheet,
   Text,
@@ -9,16 +9,20 @@ import {
   TextInput,
   Keyboard,
   Animated,
+  Alert,
 } from "react-native";
 import { RFValue } from "react-native-responsive-fontsize";
 import { AntDesign } from "@expo/vector-icons";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { api } from "@packages/backend/convex/_generated/api";
-import { useMutation, useQuery } from "convex/react";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
+import { useRouter } from "expo-router";
 
 const { width } = Dimensions.get("window");
 
-export default function CreateNoteScreen({ navigation }) {
+export default function CreateNoteScreen() {
+  const router = useRouter();
+  const { isLoading, isAuthenticated } = useConvexAuth();
   const createNote = useMutation(api.notes.createNote);
   const openaiKeySet = useQuery(api.openai.openaiKeySet) ?? true;
 
@@ -26,7 +30,8 @@ export default function CreateNoteScreen({ navigation }) {
     useState(false);
   const [noteContent, setNoteContent] = useState("");
   const [noteTitle, setNoteTitle] = useState("");
-  const footerY = new Animated.Value(0);
+  const footerY = useRef(new Animated.Value(0)).current;
+
   const toggleAdvancedSummarization = () => {
     setIsAdvancedSummarizationEnabled(!isAdvancedSummarizationEnabled);
   };
@@ -60,7 +65,7 @@ export default function CreateNoteScreen({ navigation }) {
       keyboardDidShowListener.remove();
       keyboardDidHideListener.remove();
     };
-  }, []);
+  }, [footerY]);
 
   // Calculate the position of the footer based on the Animated.Value
   const footerTranslateY = footerY.interpolate({
@@ -69,12 +74,37 @@ export default function CreateNoteScreen({ navigation }) {
   });
 
   const createUserNote = async () => {
-    await createNote({
-      title: noteTitle,
-      content: noteContent,
-      isSummary: isAdvancedSummarizationEnabled,
-    });
-    navigation.navigate("NotesDashboardScreen");
+    if (!noteTitle.trim() || !noteContent.trim()) {
+      Alert.alert("Missing fields", "Please add both a title and content.");
+      return;
+    }
+
+    if (isLoading) {
+      Alert.alert(
+        "Please wait",
+        "Authenticating with backend, try again in a moment.",
+      );
+      return;
+    }
+
+    if (!isAuthenticated) {
+      Alert.alert(
+        "Not authenticated with backend",
+        "Please wait a moment or re-open the app and try again.",
+      );
+      return;
+    }
+
+    try {
+      await createNote({
+        title: noteTitle,
+        content: noteContent,
+        isSummary: isAdvancedSummarizationEnabled,
+      });
+      router.replace("/");
+    } catch (error) {
+      Alert.alert("Failed to create note", String(error));
+    }
   };
 
   return (
@@ -87,7 +117,11 @@ export default function CreateNoteScreen({ navigation }) {
       </View>
 
       <View style={styles.underHeaderContainer}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity
+          onPress={() => {
+            router.back();
+          }}
+        >
           <Image
             style={styles.arrowBack}
             source={require("../assets/icons/arrow-back.png")}
@@ -141,12 +175,7 @@ export default function CreateNoteScreen({ navigation }) {
               disabled={!openaiKeySet}
             >
               {isAdvancedSummarizationEnabled && (
-                <AntDesign
-                  name="check"
-                  size={RFValue(12.5)}
-                  color="#0D87E1"
-                  aria-checked
-                />
+                <AntDesign name="check" size={RFValue(12.5)} color="#0D87E1" />
               )}
             </TouchableOpacity>
             <Text style={styles.advancedSummarizationText}>

@@ -7,7 +7,7 @@ import { missingEnvVariableUrl } from "./utils";
 export const openaiKeySet = query({
   args: {},
   handler: async () => {
-    return !!process.env.OPENAI_API_KEY;
+    return Boolean(process.env.OPENAI_API_KEY);
   },
 });
 
@@ -18,8 +18,6 @@ export const summary = internalAction({
     content: v.string(),
   },
   handler: async (ctx, { id, title, content }) => {
-    const prompt = `Take in the following note and return a summary: Title: ${title}, Note content: ${content}`;
-
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
       const error = missingEnvVariableUrl(
@@ -33,31 +31,22 @@ export const summary = internalAction({
       });
       return;
     }
+
     const openai = new OpenAI({ apiKey });
-    const output = await openai.chat.completions.create({
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a helpful assistant designed to output JSON in this format: {summary: string}",
-        },
-        { role: "user", content: prompt },
-      ],
-      model: "gpt-4-1106-preview",
-      response_format: { type: "json_object" },
+    const output = await openai.responses.create({
+      model: "gpt-5.4-mini",
+      instructions:
+        "You summarize user notes in concise plain English. Respond with summary text only.",
+      input: `Summarize the following note.\n\nTitle: ${title}\n\nContent:\n${content}`,
     });
+    const summary = output.output_text.trim();
 
-    // Pull the message content out of the response
-    const messageContent = output.choices[0]?.message.content;
-
-    console.log({ messageContent });
-
-    const parsedOutput = JSON.parse(messageContent!);
-    console.log({ parsedOutput });
+    if (!summary)
+      throw new Error(`OpenAI returned an empty summary for note '${id}'`);
 
     await ctx.runMutation(internal.openai.saveSummary, {
-      id: id,
-      summary: parsedOutput.summary,
+      id,
+      summary,
     });
   },
 });
@@ -69,7 +58,7 @@ export const saveSummary = internalMutation({
   },
   handler: async (ctx, { id, summary }) => {
     await ctx.db.patch(id, {
-      summary: summary,
+      summary,
     });
   },
 });

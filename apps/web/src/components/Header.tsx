@@ -1,10 +1,14 @@
 "use client";
 
-import { Disclosure, DisclosureButton, DisclosurePanel } from "@headlessui/react";
+import {
+  Disclosure,
+  DisclosureButton,
+  DisclosurePanel,
+} from "@headlessui/react";
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
-import Logo from "./common/Logo";
+import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
-import { useUser } from "@clerk/clerk-react";
+import Logo from "./common/Logo";
 import { UserNav } from "./common/UserNav";
 import { usePathname } from "next/navigation";
 
@@ -67,8 +71,8 @@ export default function Header() {
                     </Link>
                     <UserNav
                       image={user?.imageUrl}
-                      name={user?.fullName!}
-                      email={user?.primaryEmailAddress?.emailAddress!}
+                      name={user?.fullName ?? "Account"}
+                      email={user?.primaryEmailAddress?.emailAddress ?? ""}
                     />
                   </div>
                 ) : (
@@ -116,20 +120,31 @@ export default function Header() {
                   {item.name}
                 </DisclosureButton>
               ))}
-              <div className="flex gap-6 items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
-                <Link
-                  href="/notes"
-                  className="border rounded-lg border-solid border-[#2D2D2D] text-[#2D2D2D] text-center text-xl not-italic font-normal leading-[normal] font-montserrat px-5 py-[5px]"
-                >
-                  Sign in
-                </Link>
-                <Link
-                  href="/notes"
-                  className=" text-white text-center text-xl not-italic font-normal leading-[normal] font-montserrat px-5 py-1.5 button"
-                >
-                  Get Started
-                </Link>
-              </div>
+              {user ? (
+                <div className="flex gap-6 items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
+                  <Link
+                    href="/notes"
+                    className="text-white text-center text-xl not-italic font-normal leading-[normal] font-montserrat px-5 py-1.5 button"
+                  >
+                    See your Notes
+                  </Link>
+                </div>
+              ) : (
+                <div className="flex gap-6 items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
+                  <Link
+                    href="/notes"
+                    className="border rounded-lg border-solid border-[#2D2D2D] text-[#2D2D2D] text-center text-xl not-italic font-normal leading-[normal] font-montserrat px-5 py-[5px]"
+                  >
+                    Sign in
+                  </Link>
+                  <Link
+                    href="/notes"
+                    className=" text-white text-center text-xl not-italic font-normal leading-[normal] font-montserrat px-5 py-1.5 button"
+                  >
+                    Get Started
+                  </Link>
+                </div>
+              )}
             </div>
           </DisclosurePanel>
         </>

@@ -1,6 +1,7 @@
-import { useClerk } from "@clerk/clerk-react";
+import { useClerk } from "@clerk/nextjs";
 import { LogOut, Paintbrush2 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar";
 import { Button } from "./button";
 import {
@@ -30,7 +31,12 @@ export function UserNav({
           <Avatar className="h-10 w-10">
             <AvatarImage src={image} alt={name} />
             <AvatarFallback>
-              <img src={"/images/profile.png"} alt={name} />
+              <Image
+                src="/images/profile.png"
+                alt={name}
+                width={40}
+                height={40}
+              />
             </AvatarFallback>
           </Avatar>
         </Button>
@@ -52,7 +58,9 @@ export function UserNav({
           </DropdownMenuItem>
         </Link>
         <DropdownMenuItem
-          onClick={() => signOut()}
+          onClick={() => {
+            signOut({ redirectUrl: "/" });
+          }}
           className="hover:cursor-pointer hover:bg-gray-200"
         >
           <LogOut className="mr-2 h-4 w-4 text-black" />
