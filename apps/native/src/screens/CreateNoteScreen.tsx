@@ -24,7 +24,7 @@ export default function CreateNoteScreen() {
   const router = useRouter();
   const { isLoading, isAuthenticated } = useConvexAuth();
   const createNote = useMutation(api.notes.createNote);
-  const openaiKeySet = useQuery(api.openai.openaiKeySet) ?? true;
+  const openaiKeySet = useQuery(api.openai.openaiKeySet) ?? false;
 
   const [isAdvancedSummarizationEnabled, setIsAdvancedSummarizationEnabled] =
     useState(false);

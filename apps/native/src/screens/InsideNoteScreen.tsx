@@ -22,6 +22,13 @@ export default function InsideNoteScreen() {
     id: noteId ?? undefined,
   });
   const [activeTab, setActiveTab] = useState("original");
+  const noteContentText = !note
+    ? "Note not found"
+    : activeTab === "original"
+      ? note.content
+      : note.summary
+        ? note.summary
+        : "No summary available";
 
   return (
     <View style={styles.container}>
@@ -53,13 +60,7 @@ export default function InsideNoteScreen() {
         contentContainerStyle={{ paddingBottom: 100 }}
       >
         <View style={styles.contentContainer}>
-          <Text style={styles.contentDescription}>
-            {activeTab === "original"
-              ? (note?.content ?? "Note not found")
-              : note?.summary
-                ? note.summary
-                : "No summary available"}
-          </Text>
+          <Text style={styles.contentDescription}>{noteContentText}</Text>
         </View>
       </ScrollView>
 
