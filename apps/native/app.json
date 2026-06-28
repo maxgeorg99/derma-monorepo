@@ -35,7 +35,14 @@
         }
       ],
       "expo-font",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "DermaDoc needs your location to show accurate UV index and sun exposure data.",
+          "locationAlwaysAndWhenInUsePermission": "DermaDoc needs your location to show accurate UV index and sun exposure data."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
